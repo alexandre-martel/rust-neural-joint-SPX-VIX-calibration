@@ -186,6 +186,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "candle-nn"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be1160c3b63f47d40d91110a3e1e1e566ae38edddbbf492a60b40ffc3bc1ff38"
+dependencies = [
+ "candle-core",
+ "half",
+ "num-traits",
+ "rayon",
+ "safetensors",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "cauchy"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1873,6 +1888,7 @@ dependencies = [
  "argmin",
  "argmin-math",
  "candle-core",
+ "candle-nn",
  "ndarray 0.16.1",
  "ndarray-linalg",
  "quad-rs",
