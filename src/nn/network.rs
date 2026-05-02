@@ -3,8 +3,8 @@ use candle_nn::{linear, Linear, Module, VarBuilder};
 use super::neural_func::sde_coefs;
 
 pub struct Network {
-    layer1: Linear,  
-    layer2: Linear,  
+    pub layer1: Linear,  
+    pub layer2: Linear,  
 }
 
 impl Network {
