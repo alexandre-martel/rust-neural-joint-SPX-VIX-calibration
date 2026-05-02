@@ -44,5 +44,14 @@ impl NetworkGrad {
         })
     }
 
+    pub fn clone(&self) -> Result<Self> {
+    Ok(Self {
+        dw1: self.dw1.copy()?,
+        db1: self.db1.copy()?,
+        dw2: self.dw2.copy()?,
+        db2: self.db2.copy()?,
+    })
+}
+
 }
 
