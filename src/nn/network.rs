@@ -1,5 +1,5 @@
 use candle_core::{Device, Result, Tensor};
-use candle_nn::{linear, Linear, Module, VarBuilder, VarMap};
+use candle_nn::{linear, Linear, Module, VarBuilder};
 use super::neural_func::sde_coefs;
 
 pub struct Network {
