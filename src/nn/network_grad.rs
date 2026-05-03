@@ -1,18 +1,19 @@
 use candle_core::{Device, Result, Tensor};
 
 pub struct NetworkGrad {
-    pub dw1: Tensor,   //[16, 3]
-    pub db1: Tensor,   //[16]
-    pub dw2: Tensor,   //[4, 16]
-    pub db2: Tensor,   //[4]
+    pub dw1: Tensor,   // l1.weight [16, 3]
+    pub db1: Tensor,   // l1.bias   [16]
+    pub dw2: Tensor,   // l2.weight [4, 16]
+    pub db2: Tensor,   // l2.bias   [4]
 }
 
 impl NetworkGrad {
     pub fn zeros(device: &Device) -> Result<Self> {
+       
         Ok(Self {
-            dw1: Tensor::zeros((16,3), candle_core::DType::F32, device)?,
+            dw1: Tensor::zeros((16, 3), candle_core::DType::F32, device)?,
             db1: Tensor::zeros(16, candle_core::DType::F32, device)?,
-            dw2: Tensor::zeros((4,16), candle_core::DType::F32, device)?,
+            dw2: Tensor::zeros((4, 16), candle_core::DType::F32, device)?,
             db2: Tensor::zeros(4, candle_core::DType::F32, device)?,
         })
     }

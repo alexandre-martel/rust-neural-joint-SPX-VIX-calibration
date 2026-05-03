@@ -1,5 +1,4 @@
 use candle_core::{Result, Tensor};
-use candle_nn::VarMap;
 use super::super::nn::neural_func::point_jacobian;
 use super::super::nn::network_grad::NetworkGrad;
 use super::super::nn::network::Network;
@@ -36,18 +35,16 @@ pub fn euler_step(network: &Network, t: f64, x: f64, y: f64, r: f64, dt: f64, dw
     Ok((x_new, y_new, r_new))
 }
 
-pub fn euler_step_with_grad(varmap: &VarMap, network: &Network, t: f64, x: f64, y: f64, r: f64, 
-                            dx_dtheta: &NetworkGrad, 
-                            dy_dtheta: &NetworkGrad, 
+pub fn euler_step_with_grad(network: &Network, t: f64, x: f64, y: f64, r: f64,
+                            dx_dtheta: &NetworkGrad,
+                            dy_dtheta: &NetworkGrad,
                             dr_dtheta: &NetworkGrad,
-                            dt: f64, dw1: f64, dw2: f64,) 
+                            dt: f64, dw1: f64, dw2: f64,)
                             -> Result<(f64, f64, f64, NetworkGrad, NetworkGrad, NetworkGrad)> {
 
-    
     let (sigma_x, sigma_y, mu_y, rho) = network.eval(t, x, y)?;
-    
-    
-    let jac = point_jacobian(varmap, network, t, x, y)?;
+
+    let jac = point_jacobian(network, t, x, y)?;
 
     let x_new = x - 0.5 * sigma_x.powi(2) * dt + sigma_x * dw1 * dt.sqrt();
     let y_new = y + mu_y * dt + sigma_y * (rho * dw1 + (1.0 - rho.powi(2)).sqrt() * dw2) * dt.sqrt();

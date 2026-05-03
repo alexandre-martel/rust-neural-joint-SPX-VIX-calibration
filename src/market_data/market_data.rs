@@ -41,21 +41,23 @@ impl MarketData {
                     inv_spreads: vec![80.0, 120.0, 80.0],
                 },
             ],
+            // Données VIX en unités décimales (0.22 = 22% de vol annualisée)
+            // pour être cohérent avec le modèle (sigma_X in (0,2))
             vix_smiles: vec![
                 VixSmile {
                     maturity: 7.0 / 365.0,
-                    future_price: 22.0,
-                    strikes: vec![18.0, 22.0, 26.0, 30.0],
-                    call_prices: vec![4.5, 1.2, 0.3, 0.05],
-                    put_prices: vec![0.05, 0.3, 1.2, 4.5],
+                    future_price: 0.22,
+                    strikes: vec![0.18, 0.22, 0.26, 0.30],
+                    call_prices: vec![0.045, 0.020, 0.005, 0.001],
+                    put_prices:  vec![0.001, 0.020, 0.045, 0.081],
                     inv_spreads: vec![50.0, 80.0, 80.0, 50.0],
                 },
                 VixSmile {
                     maturity: 21.0 / 365.0,
-                    future_price: 24.0,
-                    strikes: vec![20.0, 24.0, 28.0, 32.0],
-                    call_prices: vec![5.0, 1.5, 0.4, 0.08],
-                    put_prices: vec![0.08, 0.4, 1.5, 5.0],
+                    future_price: 0.24,
+                    strikes: vec![0.20, 0.24, 0.28, 0.32],
+                    call_prices: vec![0.050, 0.025, 0.008, 0.002],
+                    put_prices:  vec![0.002, 0.025, 0.058, 0.092],
                     inv_spreads: vec![50.0, 80.0, 80.0, 50.0],
                 },
             ],

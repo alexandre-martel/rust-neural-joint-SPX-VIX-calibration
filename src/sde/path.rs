@@ -1,6 +1,5 @@
 use super::euler::{euler_step, Path};
 use candle_core::Result;
-use candle_nn::VarMap;
 use rand::{Rng, rng};
 use rand_distr::StandardNormal;
 use rayon::prelude::*;
@@ -28,7 +27,7 @@ pub fn simulate_paths(network: &Network, n_paths: usize, n_steps: usize, dt: f64
     }).collect()
 }
 
-pub fn simulate_paths_with_grad(varmap: &VarMap, network: &Network, n_paths: usize, n_steps: usize, dt: f64) -> Result<Vec<(Path, PathGrad)>> {
+pub fn simulate_paths_with_grad(network: &Network, n_paths: usize, n_steps: usize, dt: f64) -> Result<Vec<(Path, PathGrad)>> {
     let device = network.layer1.weight().device();
 
     (0..n_paths).into_par_iter().map(|_| {
@@ -52,7 +51,6 @@ pub fn simulate_paths_with_grad(varmap: &VarMap, network: &Network, n_paths: usi
             let dw2: f64 = rng.sample(StandardNormal);
 
             let (next_x, next_y, next_r, next_dx, next_dy, next_dr) = euler_step_with_grad(
-                varmap,
                 network,
                 t, x_vals[s], y_vals[s], r_vals[s],
                 &curr_dx, &curr_dy, &curr_dr,

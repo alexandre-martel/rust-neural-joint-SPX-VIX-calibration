@@ -1,5 +1,4 @@
-use candle_core::{Device, Result, Tensor};
-use candle_nn::VarMap;
+use candle_core::{Result, Tensor};
 use super::network::Network;
 
 pub fn sde_coefs(raw: &Tensor) -> Result<(f64, f64, f64, f64)> {
@@ -20,24 +19,29 @@ pub fn sde_coefs(raw: &Tensor) -> Result<(f64, f64, f64, f64)> {
     Ok((sigma_x, sigma_y, mu_y, rho))
 }
 
-pub fn point_jacobian(varmap: &VarMap, network: &Network, t: f64, x: f64, y: f64) -> Result<[Vec<Tensor>; 4]> {
-    let all_vars = varmap.all_vars();
-    let device = all_vars.first().map(|v| v.device()).unwrap_or(&Device::Cpu);
+pub fn point_jacobian(network: &Network, t: f64, x: f64, y: f64) -> Result<[Vec<Tensor>; 4]> {
+    let device = network.layer1.weight().device();
+
+    // Fixed order matching NetworkGrad fields: dw1=l1.weight, db1=l1.bias, dw2=l2.weight, db2=l2.bias
+    let params: [&Tensor; 4] = [
+        network.layer1.weight(),
+        network.layer1.bias().expect("l1 bias"),
+        network.layer2.weight(),
+        network.layer2.bias().expect("l2 bias"),
+    ];
 
     let mut jacobian: [Vec<Tensor>; 4] = [vec![], vec![], vec![], vec![]];
 
     for i in 0..4 {
-
         let input = Tensor::from_slice(&[t as f32, x as f32, y as f32], (1, 3), device)?;
         let output = network.forward(&input)?;
         let out_i = output.get(0)?.get(i)?;
 
         let grad_store = out_i.backward()?;
 
-        let mut grads = Vec::with_capacity(all_vars.len());
-        for var in all_vars.iter() {
-
-            if let Some(grad) = grad_store.get(var.as_tensor()) {
+        let mut grads = Vec::with_capacity(4);
+        for param in &params {
+            if let Some(grad) = grad_store.get(param) {
                 grads.push(grad.copy()?);
             }
         }

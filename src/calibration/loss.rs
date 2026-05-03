@@ -1,7 +1,6 @@
 use candle_core::Result;
 use super::super::nn::network_grad::NetworkGrad;
-use super::super::market_data::market_data::{MarketData, SpxSmile, VixSmile};
-use super::super::math::black_scholes::implied_vol;
+use super::super::market_data::market_data::MarketData;
 
 // Price call SPX = mean((St - K)+)
 pub fn compute_spx_price(x_paths: &[f64], strike: f64, forward: f64) -> f64 {
