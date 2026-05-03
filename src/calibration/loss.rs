@@ -1,6 +1,6 @@
 use candle_core::Result;
 use super::super::nn::network_grad::NetworkGrad;
-use crate::market_data::{MarketData, SpxSmile, VixSmile};
+use super::super::market_data::market_data::{MarketData, SpxSmile, VixSmile};
 use super::super::math::black_scholes::implied_vol;
 
 // Price call SPX = mean((St - K)+)
@@ -71,4 +71,58 @@ pub fn compute_vix_put_grad(vix_paths: &[f64],vix_grads: &[NetworkGrad],strike: 
 
     grad = grad.scale(1.0 / n as f64)?;
     Ok(grad)
+}
+
+pub fn compute_loss(
+    spx_model_ivs: &[f64],
+    vix_futures_model: &[f64],
+    vix_calls_model: &[f64],
+    vix_puts_model: &[f64],
+    market: &MarketData,
+    w_fvix: f64,  
+    w_spx: f64,  
+    w_vix: f64, 
+) -> f64 {
+    let mut loss = 0.0;
+    let nv = market.vix_smiles.len() as f64;
+    let ns = market.spx_smiles.len() as f64;
+
+    //  futures VIX 
+    for (j, vix_smile) in market.vix_smiles.iter().enumerate() {
+        let ratio = vix_futures_model[j] / vix_smile.future_price - 1.0;
+        loss += w_fvix / nv * ratio * ratio;
+    }
+
+    // SPX option
+    let mut spx_idx = 0;
+    for spx_smile in &market.spx_smiles {
+        let total_delta: f64 = spx_smile.inv_spreads.iter().sum();
+        for (k, &iv_mkt) in spx_smile.implied_vols.iter().enumerate() {
+            let delta = spx_smile.inv_spreads[k] / total_delta;
+            let ratio = spx_model_ivs[spx_idx] / iv_mkt - 1.0;
+            loss += w_spx / ns * delta * ratio * ratio;
+            spx_idx += 1;
+        }
+    }
+
+    // VIX options
+    let mut vix_idx = 0;
+    for vix_smile in &market.vix_smiles {
+        let total_delta: f64 = vix_smile.inv_spreads.iter().sum();
+        for (k, &strike) in vix_smile.strikes.iter().enumerate() {
+            let delta = vix_smile.inv_spreads[k] / total_delta;
+            if strike > vix_smile.future_price {
+                // call
+                let ratio = vix_calls_model[vix_idx] / vix_smile.call_prices[k] - 1.0;
+                loss += w_vix / nv * delta * ratio * ratio;
+            } else {
+                // put
+                let ratio = vix_puts_model[vix_idx] / vix_smile.put_prices[k] - 1.0;
+                loss += w_vix / nv * delta * ratio * ratio;
+            }
+            vix_idx += 1;
+        }
+    }
+
+    loss
 }
