@@ -72,8 +72,6 @@ pub fn euler_step_with_grad(varmap: &VarMap, network: &Network, t: f64, x: f64, 
         .add(&d_sigmay.scale(coeff_sigmay)?)?
         .add(&d_rho.scale(coeff_rho)?)?;
 
-    // 6. ∂R_{t+1}/∂θ
-    // = ∂Rt/∂θ + 2·σX·dt/τ · ∂σX/∂θ
     let coeff_r  = 2.0 * sigma_x * dt / TAU;
     let d_sigmax2 = NetworkGrad::from_vec(jac[0].clone())?;
     let dr_new = dr_dtheta.add(&d_sigmax2.scale(coeff_r)?)?;
