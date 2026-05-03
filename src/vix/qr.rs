@@ -57,22 +57,21 @@ fn back_substitution(r: &Array2<f64>, b: &Array1<f64>) -> Array1<f64> {
 
 
 pub fn solve_lstsq_grad(q: &Array2<f64>, r_mat: &Array2<f64>, alpha: &Array1<f64>, a_grad: &[Vec<NetworkGrad>], r_grad: &[NetworkGrad]) -> Result<Vec<NetworkGrad>> {
-    let n_paths = q.nrows();   // N
-    let n_cols = r_mat.ncols(); // m
+    let n_paths = q.nrows();   
+    let n_cols = r_mat.ncols(); 
     let device = r_grad[0].dw1.device();
 
-    // 1. B_i = ∂R_i/∂θ  -  Σ_j (∂A_{i,j}/∂θ · α*_j)
     let mut b_grads = Vec::with_capacity(n_paths);
     for i in 0..n_paths {
         let mut da_alpha_i = NetworkGrad::zeros(device)?;
         for j in 0..n_cols {
             da_alpha_i = da_alpha_i.add(&a_grad[i][j].scale(alpha[j])?)?;
         }
-        // B_i = r_grad[i] - da_alpha_i
+
         b_grads.push(r_grad[i].add(&da_alpha_i.scale(-1.0)?)?);
     }
 
-    // 2. Y_j = Σ_i Q[i,j] · B_i    (produit Qᵀ · B, chaque Y_j est un NetworkGrad)
+
     let mut y_grads = Vec::with_capacity(n_cols);
     for j in 0..n_cols {
         let mut y_j = NetworkGrad::zeros(device)?;
@@ -82,9 +81,7 @@ pub fn solve_lstsq_grad(q: &Array2<f64>, r_mat: &Array2<f64>, alpha: &Array1<f64
         y_grads.push(y_j);
     }
 
-    // 3. Back-substitution : R_mat · ∂α* = Y
-    // Pour chaque j de m-1 à 0 :
-    // ∂α*_j = (Y_j - Σ_{k>j} R[j,k] · ∂α*_k) / R[j,j]
+
     let mut d_alpha = (0..n_cols)
         .map(|_| NetworkGrad::zeros(device))
         .collect::<Result<Vec<_>>>()?;

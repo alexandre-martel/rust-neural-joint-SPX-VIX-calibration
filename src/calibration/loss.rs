@@ -97,6 +97,7 @@ pub fn compute_loss(
     let mut spx_idx = 0;
     for spx_smile in &market.spx_smiles {
         let total_delta: f64 = spx_smile.inv_spreads.iter().sum();
+
         for (k, &iv_mkt) in spx_smile.implied_vols.iter().enumerate() {
             let delta = spx_smile.inv_spreads[k] / total_delta;
             let ratio = spx_model_ivs[spx_idx] / iv_mkt - 1.0;
@@ -112,11 +113,9 @@ pub fn compute_loss(
         for (k, &strike) in vix_smile.strikes.iter().enumerate() {
             let delta = vix_smile.inv_spreads[k] / total_delta;
             if strike > vix_smile.future_price {
-                // call
                 let ratio = vix_calls_model[vix_idx] / vix_smile.call_prices[k] - 1.0;
                 loss += w_vix / nv * delta * ratio * ratio;
             } else {
-                // put
                 let ratio = vix_puts_model[vix_idx] / vix_smile.put_prices[k] - 1.0;
                 loss += w_vix / nv * delta * ratio * ratio;
             }
@@ -125,4 +124,67 @@ pub fn compute_loss(
     }
 
     loss
+}
+
+pub fn compute_loss_grad(
+    spx_iv_grads: &[NetworkGrad],
+    vix_future_grads: &[NetworkGrad],
+    vix_call_grads: &[NetworkGrad],
+    vix_put_grads: &[NetworkGrad],
+    spx_model_ivs: &[f64],
+    vix_futures_model: &[f64],
+    vix_calls_model: &[f64],
+    vix_puts_model: &[f64],
+    market: &MarketData,
+    w_fvix: f64,
+    w_spx: f64,
+    w_vix: f64,
+) -> Result<NetworkGrad> {
+    let device = vix_future_grads[0].dw1.device();
+    let mut grad = NetworkGrad::zeros(device)?;
+    let nv = market.vix_smiles.len() as f64;
+    let ns = market.spx_smiles.len() as f64;
+
+    // futures VIX
+    for (j, vix_smile) in market.vix_smiles.iter().enumerate() {
+        let ratio = vix_futures_model[j] / vix_smile.future_price - 1.0;
+        let coeff = w_fvix / nv * 2.0 * ratio / vix_smile.future_price;
+        grad = grad.add(&vix_future_grads[j].scale(coeff)?)?;
+    }
+
+    // SPX option
+    let mut spx_idx = 0;
+    for spx_smile in &market.spx_smiles {
+        let total_delta: f64 = spx_smile.inv_spreads.iter().sum();
+        for (k, &iv_mkt) in spx_smile.implied_vols.iter().enumerate() {
+            let delta = spx_smile.inv_spreads[k] / total_delta;
+            let ratio = spx_model_ivs[spx_idx] / iv_mkt - 1.0;
+            let coeff = w_spx / ns * 2.0 * delta * ratio / iv_mkt;
+            grad = grad.add(&spx_iv_grads[spx_idx].scale(coeff)?)?;
+            spx_idx += 1;
+        }
+    }
+
+    // VIX options
+    let mut vix_idx = 0;
+    for vix_smile in &market.vix_smiles {
+        let total_delta: f64 = vix_smile.inv_spreads.iter().sum();
+        for (k, &strike) in vix_smile.strikes.iter().enumerate() {
+            let delta = vix_smile.inv_spreads[k] / total_delta;
+            if strike > vix_smile.future_price {
+                let price_mkt = vix_smile.call_prices[k];
+                let ratio = vix_calls_model[vix_idx] / price_mkt - 1.0;
+                let coeff = w_vix / nv * 2.0 * delta * ratio / price_mkt;
+                grad = grad.add(&vix_call_grads[vix_idx].scale(coeff)?)?;
+            } else {
+                let price_mkt = vix_smile.put_prices[k];
+                let ratio = vix_puts_model[vix_idx] / price_mkt - 1.0;
+                let coeff = w_vix / nv * 2.0 * delta * ratio / price_mkt;
+                grad = grad.add(&vix_put_grads[vix_idx].scale(coeff)?)?;
+            }
+            vix_idx += 1;
+        }
+    }
+
+    Ok(grad)
 }
